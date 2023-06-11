@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace jackmd\scorefactory;
 
@@ -12,50 +12,68 @@ use pocketmine\player\Player;
 use function array_map;
 use function array_values;
 
-class ScoreFactory {
+class ScoreFactory
+{
 
-	private const OBJECTIVE_NAME = "objective";
-	private const CRITERIA_NAME  = "dummy";
+    private const OBJECTIVE_NAME = "objective";
+    private const CRITERIA_NAME = "dummy";
 
-	private const MIN_LINES = 0;
-	private const MAX_LINES = 15;
+    private const MIN_LINES = 0;
+    private const MAX_LINES = 15;
 
-	/** @var ScoreCache[] */
-	private static array $cache = [];
+    /** @var ScoreCache[] */
+    private static array $cache = [];
 
-	/**
-	 * Adds a scoreboard to the player if he doesn't have one.
-	 * This should be the very first call to adding a scoreboard to the player.
-	 *
-	 * @param Player $player
-	 * @param string $displayName   Name that will appear on the title of the scoreboard
-	 * @param int    $slotOrder     Either SetDisplayObjectivePacket::SORT_ORDER_ASCENDING or SetDisplayObjectivePacket::SORT_ORDER_DESCENDING
-	 * @param string $displaySlot   Choose one from SetDisplayObjectivePacket::DISPLAY_SLOT_xxx
-	 * @param string $objectiveName default: objective
-	 * @param string $criteriaName  default: dummy
-	 * @return void
-	 */
-	public static function setObjective(
-		Player $player,
-		string $displayName,
-		int $slotOrder = SetDisplayObjectivePacket::SORT_ORDER_ASCENDING,
-		string $displaySlot = SetDisplayObjectivePacket::DISPLAY_SLOT_SIDEBAR,
-		string $objectiveName = self::OBJECTIVE_NAME,
-		string $criteriaName = self::CRITERIA_NAME
-	): void {
-		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
+    /**
+     * Adds a scoreboard to the player if he doesn't have one.
+     * This should be the very first call to adding a scoreboard to the player.
+     *
+     * @param Player $player
+     * @param string $displayName Name that will appear on the title of the scoreboard
+     * @param int $slotOrder Either SetDisplayObjectivePacket::SORT_ORDER_ASCENDING or SetDisplayObjectivePacket::SORT_ORDER_DESCENDING
+     * @param string $displaySlot Choose one from SetDisplayObjectivePacket::DISPLAY_SLOT_xxx
+     * @param string $objectiveName default: objective
+     * @param string $criteriaName default: dummy
+     * @return void
+     */
+    public static function setObjective(
+        Player $player,
+        string $displayName,
+        int    $slotOrder = SetDisplayObjectivePacket::SORT_ORDER_ASCENDING,
+        string $displaySlot = SetDisplayObjectivePacket::DISPLAY_SLOT_SIDEBAR,
+        string $objectiveName = self::OBJECTIVE_NAME,
+        string $criteriaName = self::CRITERIA_NAME
+    ): void
+    {
+        if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
 
-		$pk = new SetDisplayObjectivePacket();
-		$pk->displaySlot = $displaySlot;
-		$pk->objectiveName = $objectiveName;
-		$pk->displayName = $displayName;
-		$pk->criteriaName = $criteriaName;
-		$pk->sortOrder = $slotOrder;
+        $pk = new SetDisplayObjectivePacket();
+        $pk->displaySlot = $displaySlot;
+        $pk->objectiveName = $objectiveName;
+        $pk->displayName = $displayName;
+        $pk->criteriaName = $criteriaName;
+        $pk->sortOrder = $slotOrder;
 
-		if (self::hasCache($player)) self::removeCache($player);
+        if (self::hasCache($player)) self::removeCache($player);
 
-		self::$cache[$player->getUniqueId()->getBytes()] = ScoreCache::init($player, $objectiveName, $pk);
-	}
+        self::$cache[$player->getUniqueId()->getBytes()] = ScoreCache::init($player, $objectiveName, $pk);
+    }
+
+    /**
+     * Returns true or false if a player has a scoreboard or not.
+     */
+    private static function hasCache(Player $player): bool
+    {
+        return isset(self::$cache[$player->getUniqueId()->getBytes()]);
+    }
+
+    /**
+     * Remove the players cache.
+     */
+    private static function removeCache(Player $player): void
+    {
+        unset(self::$cache[$player->getUniqueId()->getBytes()]);
+    }
 
     /**
      * Sends only the objective that includes the bare minimum scoreboard with the title and no lines.
@@ -63,70 +81,84 @@ class ScoreFactory {
      * After this, set lines and send the lines.
      * @throws ScoreFactoryException
      */
-	public static function sendObjective(Player $player): void {
-		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
-		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score objective to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
+    public static function sendObjective(Player $player): void
+    {
+        if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
+        if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score objective to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
 
-		// remove the previous scoreboard (if any) for update to take place
-		self::removeObjective($player, false);
+        // remove the previous scoreboard (if any) for update to take place
+        self::removeObjective($player, false);
 
-		$player->getNetworkSession()->sendDataPacket(self::getCache($player)->getObjectivePacket());
-	}
+        $player->getNetworkSession()->sendDataPacket(self::getCache($player)->getObjectivePacket());
+    }
 
-	/**
-	 * Removes the scoreboard from the player specified.
-	 */
-	public static function removeObjective(Player $player, bool $removeCache = false): void {
-		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
+    /**
+     * Removes the scoreboard from the player specified.
+     */
+    public static function removeObjective(Player $player, bool $removeCache = false): void
+    {
+        if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
 
-		$objectiveName = self::hasCache($player) ? self::getCache($player)->getObjective() : self::OBJECTIVE_NAME;
+        $objectiveName = self::hasCache($player) ? self::getCache($player)->getObjective() : self::OBJECTIVE_NAME;
 
-		$pk = new RemoveObjectivePacket();
-		$pk->objectiveName = $objectiveName;
-		$player->getNetworkSession()->sendDataPacket($pk);
+        $pk = new RemoveObjectivePacket();
+        $pk->objectiveName = $objectiveName;
+        $player->getNetworkSession()->sendDataPacket($pk);
 
-		if ($removeCache) self::removeCache($player);
-	}
+        if ($removeCache) self::removeCache($player);
+    }
 
-	/**
-	 * Same as ScoreFactory::hasCache()
-	 */
-	public static function hasObjective(Player $player): bool {
-		return self::hasCache($player);
-	}
+    /**
+     * Returns an instance of ScoreCache.
+     * Note: Do check for if the player has cache via ScoreFactory::hasCache() beforehand!
+     */
+    private static function getCache(Player $player): ScoreCache
+    {
+        return self::$cache[$player->getUniqueId()->getBytes()];
+    }
 
-	/**
-	 * Returns a list of online players having scoreboard.
-	 *
-	 * @return Player[]
-	 */
-	public static function getActivePlayers(): array {
-		return array_values(array_map(function(ScoreCache $cache) {
-			return $cache->getPlayer();
-		}, self::$cache));
-	}
+    /**
+     * Same as ScoreFactory::hasCache()
+     */
+    public static function hasObjective(Player $player): bool
+    {
+        return self::hasCache($player);
+    }
 
-	/**
-	 * Set a message at the line specified to the players' scoreboard.
-	 */
-	public static function setScoreLine(Player $player, int $line, string $message, int $type = ScorePacketEntry::TYPE_FAKE_PLAYER): ScorePacketEntry {
-		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
-		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot set a score line to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
-		if ($line < self::MIN_LINES || $line > self::MAX_LINES) throw new ScoreFactoryException("Line: $line is out of range, expected value between " . self::MIN_LINES . " and " . self::MAX_LINES);
+    /**
+     * Returns a list of online players having scoreboard.
+     *
+     * @return Player[]
+     */
+    public static function getActivePlayers(): array
+    {
+        return array_values(array_map(function (ScoreCache $cache) {
+            return $cache->getPlayer();
+        }, self::$cache));
+    }
 
-		$cache = self::getCache($player);
+    /**
+     * Set a message at the line specified to the players' scoreboard.
+     */
+    public static function setScoreLine(Player $player, int $line, string $message, int $type = ScorePacketEntry::TYPE_FAKE_PLAYER): ScorePacketEntry
+    {
+        if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
+        if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot set a score line to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
+        if ($line < self::MIN_LINES || $line > self::MAX_LINES) throw new ScoreFactoryException("Line: $line is out of range, expected value between " . self::MIN_LINES . " and " . self::MAX_LINES);
 
-		$entry = new ScorePacketEntry();
-		$entry->objectiveName = $cache->getObjective();
-		$entry->type = $type;
-		$entry->customName = $message;
-		$entry->score = $line;
-		$entry->scoreboardId = $line;
+        $cache = self::getCache($player);
 
-		$cache->setEntry($line, $entry);
+        $entry = new ScorePacketEntry();
+        $entry->objectiveName = $cache->getObjective();
+        $entry->type = $type;
+        $entry->customName = $message;
+        $entry->score = $line;
+        $entry->scoreboardId = $line;
 
-		return $entry;
-	}
+        $cache->setEntry($line, $entry);
+
+        return $entry;
+    }
 
     /**
      * Send a single score line to the player.
@@ -134,18 +166,43 @@ class ScoreFactory {
      * and after setting the score line.
      * @throws ScoreFactoryException
      */
-	public static function sendLine(Player $player, int $line, ScorePacketEntry $entry): void {
-		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
-		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score lines to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
+    public static function sendLine(Player $player, int $line, ScorePacketEntry $entry): void
+    {
+        if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
+        if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score lines to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
 
-		self::removeScoreLine($player, $line, false);
+        self::removeScoreLine($player, $line, false);
 
-		$pk = new SetScorePacket();
-		$pk->type = $pk::TYPE_CHANGE;
-		$pk->entries[$line] = $entry;
+        $pk = new SetScorePacket();
+        $pk->type = $pk::TYPE_CHANGE;
+        $pk->entries[$line] = $entry;
 
-		$player->getNetworkSession()->sendDataPacket($pk);
-	}
+        $player->getNetworkSession()->sendDataPacket($pk);
+    }
+
+    /**
+     * Remove a single line from the scoreboard while keeping the board intact.
+     */
+    public static function removeScoreLine(Player $player, int $line, bool $removeFromCache = true): void
+    {
+        if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
+        if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot remove a score line from a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
+        if ($line < self::MIN_LINES || $line > self::MAX_LINES) throw new ScoreFactoryException("Line: $line is out of range, expected value between " . self::MIN_LINES . " and " . self::MAX_LINES);
+
+        $cache = self::getCache($player);
+        if ($removeFromCache) $cache->removeEntry($line);
+
+        $pk = new SetScorePacket();
+        $pk->type = SetScorePacket::TYPE_REMOVE;
+
+        $entry = new ScorePacketEntry();
+        $entry->objectiveName = $cache->getObjective();
+        $entry->score = $line;
+        $entry->scoreboardId = $line;
+        $pk->entries[] = $entry;
+
+        $player->getNetworkSession()->sendDataPacket($pk);
+    }
 
     /**
      * Send the score lines after setting and sending the objective.
@@ -155,80 +212,37 @@ class ScoreFactory {
      * and then send all the old and updated lines.
      * @throws ScoreFactoryException
      */
-	public static function sendLines(Player $player): void {
-		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
-		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score lines to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
+    public static function sendLines(Player $player): void
+    {
+        if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
+        if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score lines to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
 
-		self::removeScoreLines($player, false);
+        self::removeScoreLines($player, false);
 
-		$cache = self::getCache($player);
+        $cache = self::getCache($player);
 
-		$pk = new SetScorePacket();
-		$pk->type = $pk::TYPE_CHANGE;
-		$pk->entries = $cache->getEntries();
-		$player->getNetworkSession()->sendDataPacket($pk);
-	}
+        $pk = new SetScorePacket();
+        $pk->type = $pk::TYPE_CHANGE;
+        $pk->entries = $cache->getEntries();
+        $player->getNetworkSession()->sendDataPacket($pk);
+    }
 
-	/**
-	 * Remove a single line from the scoreboard while keeping the board intact.
-	 */
-	public static function removeScoreLine(Player $player, int $line, bool $removeFromCache = true): void {
-		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
-		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot remove a score line from a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
-		if ($line < self::MIN_LINES || $line > self::MAX_LINES) throw new ScoreFactoryException("Line: $line is out of range, expected value between " . self::MIN_LINES . " and " . self::MAX_LINES);
+    /**
+     * Remove all the lines from the players' scoreboard without actually removing the scoreboard.
+     * This will just remove all the lines.
+     */
+    public static function removeScoreLines(Player $player, bool $removeFromCache = false): void
+    {
+        if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
+        if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot remove a score line from a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
 
-		$cache = self::getCache($player);
-		if ($removeFromCache) $cache->removeEntry($line);
+        $cache = self::getCache($player);
+        if ($removeFromCache) $cache->setEntries([]);
 
-		$pk = new SetScorePacket();
-		$pk->type = SetScorePacket::TYPE_REMOVE;
+        $pk = new SetScorePacket();
+        $pk->type = SetScorePacket::TYPE_REMOVE;
+        $pk->entries = $cache->getEntries();
 
-		$entry = new ScorePacketEntry();
-		$entry->objectiveName = $cache->getObjective();
-		$entry->score = $line;
-		$entry->scoreboardId = $line;
-		$pk->entries[] = $entry;
-
-		$player->getNetworkSession()->sendDataPacket($pk);
-	}
-
-	/**
-	 * Remove all the lines from the players' scoreboard without actually removing the scoreboard.
-	 * This will just remove all the lines.
-	 */
-	public static function removeScoreLines(Player $player, bool $removeFromCache = false): void {
-		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
-		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot remove a score line from a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
-
-		$cache = self::getCache($player);
-		if ($removeFromCache) $cache->setEntries([]);
-
-		$pk = new SetScorePacket();
-		$pk->type = SetScorePacket::TYPE_REMOVE;
-		$pk->entries = $cache->getEntries();
-
-		$player->getNetworkSession()->sendDataPacket($pk);
-	}
-
-	/**
-	 * Returns true or false if a player has a scoreboard or not.
-	 */
-	private static function hasCache(Player $player): bool {
-		return isset(self::$cache[$player->getUniqueId()->getBytes()]);
-	}
-
-	/**
-	 * Returns an instance of ScoreCache.
-	 * Note: Do check for if the player has cache via ScoreFactory::hasCache() beforehand!
-	 */
-	private static function getCache(Player $player): ScoreCache {
-		return self::$cache[$player->getUniqueId()->getBytes()];
-	}
-
-	/**
-	 * Remove the players cache.
-	 */
-	private static function removeCache(Player $player): void {
-		unset(self::$cache[$player->getUniqueId()->getBytes()]);
-	}
+        $player->getNetworkSession()->sendDataPacket($pk);
+    }
 }

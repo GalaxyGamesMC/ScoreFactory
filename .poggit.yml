@@ -1,6 +1,6 @@
 --- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/Ifera/ScoreFactory
 branches:
-- master
+  - master
 projects:
   ScoreFactory:
     path: ""

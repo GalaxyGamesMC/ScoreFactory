@@ -3,6 +3,6 @@ version: 3.1.1
 api: 5.0.0
 antigen: jackmd\scorefactory
 authors:
-- JackMD
-- TwistedAsylumMC
+  - JackMD
+  - TwistedAsylumMC
 php: 8.1
