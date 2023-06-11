@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types = 1);
 
 namespace jackmd\scorefactory;
@@ -56,11 +57,12 @@ class ScoreFactory {
 		self::$cache[$player->getUniqueId()->getBytes()] = ScoreCache::init($player, $objectiveName, $pk);
 	}
 
-	/**
-	 * Sends only the objective that includes the bare minimum scoreboard with the title and no lines.
-	 * This should be the second call for sending a scoreboard to the player.
-	 * After this, set lines and send the lines.
-	 */
+    /**
+     * Sends only the objective that includes the bare minimum scoreboard with the title and no lines.
+     * This should be the second call for sending a scoreboard to the player.
+     * After this, set lines and send the lines.
+     * @throws ScoreFactoryException
+     */
 	public static function sendObjective(Player $player): void {
 		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
 		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score objective to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
@@ -126,11 +128,12 @@ class ScoreFactory {
 		return $entry;
 	}
 
-	/**
-	 * Send a single score line to the player.
-	 * This should be called after setting and sending the objective
-	 * and after setting the score line.
-	 */
+    /**
+     * Send a single score line to the player.
+     * This should be called after setting and sending the objective
+     * and after setting the score line.
+     * @throws ScoreFactoryException
+     */
 	public static function sendLine(Player $player, int $line, ScorePacketEntry $entry): void {
 		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
 		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score lines to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
@@ -144,13 +147,14 @@ class ScoreFactory {
 		$player->getNetworkSession()->sendDataPacket($pk);
 	}
 
-	/**
-	 * Send the score lines after setting and sending the objective.
-	 * Furthermore, this should be called after setting the score lines.
-	 *
-	 * This will remove the previous score lines without removing them from cache
-	 * and then send all the old and updated lines.
-	 */
+    /**
+     * Send the score lines after setting and sending the objective.
+     * Furthermore, this should be called after setting the score lines.
+     *
+     * This will remove the previous score lines without removing them from cache
+     * and then send all the old and updated lines.
+     * @throws ScoreFactoryException
+     */
 	public static function sendLines(Player $player): void {
 		if (!$player->isConnected()) throw new ScoreFactoryException("Player is not connected.");
 		if (!self::hasCache($player)) throw new ScoreFactoryException("Cannot send score lines to a player without a scoreboard. Please call ScoreFactory::setObjective() beforehand.");
@@ -201,9 +205,6 @@ class ScoreFactory {
 
 		$pk = new SetScorePacket();
 		$pk->type = SetScorePacket::TYPE_REMOVE;
-
-		$entry = new ScorePacketEntry();
-		$entry->objectiveName = $cache->getObjective();
 		$pk->entries = $cache->getEntries();
 
 		$player->getNetworkSession()->sendDataPacket($pk);
